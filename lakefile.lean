@@ -169,7 +169,7 @@ def buildSoplexObjects (pkgDir : FilePath) : JobM Unit := do
   proc {cmd := "cmake", args := cmakeArgs, cwd := some pkgDir, env := env}
   let buildArgs := #["--build", buildDir.toString, "--target", "libsoplex", "--parallel"]
   proc {cmd := "cmake", args := buildArgs, cwd := some pkgDir, env := env}
-  let lib := buildDir / "lib" / nameToStaticLib "soplex"
+  let lib := buildDir / "lib" / "libsoplex.a"
   if !(← lib.pathExists) then
     error s!"SoPlex archive was not produced at {lib}"
   removeOldSoplexObjs objsDir

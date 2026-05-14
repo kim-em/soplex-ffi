@@ -78,7 +78,7 @@ jobs:
       - name: Plant compiler-rt sanitizer archives into Lean's clang
         run: ./scripts/install-sanitizer-runtime.sh
 
-      - name: Preload ASan runtime for Lean
+      - name: Locate ASan runtime for sanitized builds
         run: |
           asan_so="$(find "$(lean --print-prefix)/lib/clang" \
             -path '*/lib/x86_64-unknown-linux-gnu/libclang_rt.asan.so' \
@@ -87,11 +87,19 @@ jobs:
             echo "Could not find libclang_rt.asan.so under Lean's clang resource directory" >&2
             exit 1
           fi
-          echo "LD_PRELOAD=$asan_so" >> "$GITHUB_ENV"
-          echo "Using ASAN runtime: $asan_so"
+          # Lean needs this preloaded while compiling sanitized shared
+          # libraries, but sanitized executables must not inherit LD_PRELOAD:
+          # their link already chooses an ASan runtime, and preloading a
+          # second one aborts at process startup with "incompatible ASan
+          # runtimes".
+          echo "ASAN_RUNTIME=$asan_so" >> "$GITHUB_ENV"
+          echo "Using ASan runtime: $asan_so"
 
       - name: Build and run ffi-check under ASan/UBSan
-        run: lake -Ksanitize=1 exe ffi-check
+        run: |
+          LD_PRELOAD="$ASAN_RUNTIME" lake build -Ksanitize=1 ffi-check
+          ldd ./.lake/build/bin/ffi-check || true
+          ./.lake/build/bin/ffi-check
 
   macos:
     name: macOS

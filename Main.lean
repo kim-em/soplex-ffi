@@ -33,4 +33,24 @@ def main : IO UInt32 := do
   if (result.obj - 1.0).abs > 1e-9 then
     IO.eprintln s!"expected objective close to 1.0, got {result.obj}"
     return 2
+
+  let scaled : Problem 1 1 :=
+    { c := #v[-1]
+      objOffset := 2
+      a := #[(⟨0, by decide⟩, ⟨0, by decide⟩, 3)]
+      rowBounds := #v[(none, some 6)]
+      colBounds := #v[(none, none)] }
+  match solveExact { ({} : Options) with presolve := false } scaled with
+  | .error e =>
+      IO.eprintln s!"scaled exact solve failed: {repr e}"
+      return 4
+  | .ok sol =>
+      match sol.status, sol.certificate.dual with
+      | .optimal, some d =>
+          if d.rowUpper.toArray != #[(1 / 3 : Rat)] || d.colUpper.toArray != #[0] then
+            IO.eprintln s!"expected exact scaled-row dual, got {repr sol.certificate}"
+            return 5
+      | _, _ =>
+          IO.eprintln s!"expected optimal scaled-row certificate, got {repr sol}"
+          return 6
   return 0

@@ -612,11 +612,13 @@ extern "C" LEAN_EXPORT lean_obj_res lean_soplex_solve_exact(
     solver.setIntParam(SoPlex::OBJSENSE, SoPlex::OBJSENSE_MINIMIZE);
     solver.setIntParam(SoPlex::SOLVEMODE, SoPlex::SOLVEMODE_RATIONAL);
     solver.setIntParam(SoPlex::SYNCMODE, SoPlex::SYNCMODE_AUTO);
-    // Exact certificates come from the rational refinement/getters. In
-    // this Boost/GMP-only build, forcing the floating-point tolerances to
-    // literal zero can make the refinement loop stall on tiny examples.
     solver.setIntParam(SoPlex::READMODE, SoPlex::READMODE_RATIONAL);
     solver.setIntParam(SoPlex::CHECKMODE, SoPlex::CHECKMODE_RATIONAL);
+    // SoPlex's documented exact-solver settings require zero rational
+    // feasibility/optimality tolerances. Otherwise the rational getters may
+    // return tolerance-feasible duals rather than verifier-grade certificates.
+    solver.setRealParam(SoPlex::FEASTOL, 0.0);
+    solver.setRealParam(SoPlex::OPTTOL, 0.0);
     // SoPlex 8.0.2 only enables this knob in MPFR builds. The local
     // static build used by this package is Boost/GMP-only, where setting
     // it to true is rejected by the parameter layer and can leave the
